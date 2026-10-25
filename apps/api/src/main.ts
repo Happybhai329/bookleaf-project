@@ -1,5 +1,7 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import * as fs from 'fs';
+import * as express from 'express';
 
 // Load environment variables before module evaluation
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
@@ -60,6 +62,23 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
+
+  // Serve frontend SPA build if present
+  const candidateWebPaths = [
+    path.resolve(__dirname, '..', '..', 'web', 'dist'),
+    path.resolve(process.cwd(), 'apps', 'web', 'dist'),
+  ];
+  const webDistPath = candidateWebPaths.find((p) => fs.existsSync(p));
+  if (webDistPath) {
+    app.use(express.static(webDistPath));
+    app.use((req: any, res: any, next: any) => {
+      if (req.method === 'GET' && !req.path.startsWith('/api')) {
+        return res.sendFile(path.join(webDistPath, 'index.html'));
+      }
+      next();
+    });
+    console.log(`🌐 Serving frontend SPA from ${webDistPath}`);
+  }
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
