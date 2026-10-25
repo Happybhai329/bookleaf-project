@@ -13,7 +13,9 @@ export async function apiRequest<T = any>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const url = endpoint.startsWith('/') ? `/api/v1${endpoint}` : `/api/v1/${endpoint}`;
+  const apiBase = import.meta.env.VITE_API_URL || '';
+  const path = endpoint.startsWith('/') ? `/api/v1${endpoint}` : `/api/v1/${endpoint}`;
+  const url = `${apiBase}${path}`;
 
   const headers = new Headers(options.headers || {});
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
