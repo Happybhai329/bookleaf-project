@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  AUTHOR
+  ADMIN
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketCategory {
+  ROYALTY_PAYMENTS
+  ISBN_METADATA
+  PRINTING_QUALITY
+  DISTRIBUTION_AVAILABILITY
+  BOOK_STATUS_PRODUCTION
+  GENERAL_INQUIRY
+}
+
+enum TicketPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum MessageVisibility {
+  PUBLIC
+  INTERNAL_NOTE
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password_hash String
+  role          UserRole  @default(AUTHOR)
+  author_id     String?
+  author        Author?   @relation(fields: [author_id], references: [author_id], onDelete: SetNull)
+  display_name  String
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Author {
+  author_id   String    @id
+  name        String
+  email       String    @unique
+  phone       String
+  city        String
+  joined_date String
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  users       User[]
+  books       Book[]
+  tickets     Ticket[]
+
+  @@map("authors")
+}
+
+model Book {
+  book_id                  String    @id
+  author_id                String
+  author                   Author    @relation(fields: [author_id], references: [author_id], onDelete: Cascade)
+  title                    String
+  isbn                     String
+  genre                    String
+  publication_date         String?
+  status                   String
+  mrp                      Decimal?  @db.Decimal(10, 2)
+  author_royalty_per_copy  Decimal?  @db.Decimal(10, 2)
+  total_copies_sold        Int       @default(0)
+  total_royalty_earned     Decimal   @default(0) @db.Decimal(12, 2)
+  royalty_paid             Decimal   @default(0) @db.Decimal(12, 2)
+  royalty_pending          Decimal   @default(0) @db.Decimal(12, 2)
+  last_royalty_payout_date String?
+  print_partner            String?
+  available_on             String[]
+  created_at               DateTime  @default(now())
+  updated_at               DateTime  @updatedAt
+
+  tickets                  Ticket[]
+
+  @@map("books")
+}
+
+model Ticket {
+  id                  String          @id @default(uuid())
+  reference           String          @unique
+  author_id           String
+  author              Author          @relation(fields: [author_id], references: [author_id], onDelete: Cascade)
+  book_id             String?
+  book                Book?           @relation(fields: [book_id], references: [book_id], onDelete: SetNull)
+  subject             String
+  description         String          @db.Text
+  status              TicketStatus    @default(OPEN)
+  final_category      TicketCategory
+  final_priority      TicketPriority
+  suggested_category  TicketCategory?
+  suggested_priority  TicketPriority?
+  ai_reasoning        String?         @db.Text
+  ai_provider         String?
+  ai_confidence       String?
+  ai_classified_at    DateTime?
+  needs_human_review  Boolean         @default(false)
+  assigned_admin_id   String?
+  assigned_admin_name String?
+  latest_draft        String?         @db.Text
+  draft_metadata      Json?
+  created_at          DateTime        @default(now())
+  updated_at          DateTime        @updatedAt
+
+  messages            TicketMessage[]
+  audit_logs          AuditLog[]
+
+  @@index([author_id])
+  @@index([status])
+  @@index([final_priority])
+  @@index([final_category])
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id          String            @id @default(uuid())
+  ticket_id   String
+  ticket      Ticket            @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  sender_id   String
+  sender_name String
+  sender_role UserRole
+  visibility  MessageVisibility @default(PUBLIC)
+  content     String            @db.Text
+  is_ai_draft Boolean           @default(false)
+  created_at  DateTime          @default(now())
+
+  @@index([ticket_id])
+  @@map("ticket_messages")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  ticket_id  String
+  ticket     Ticket   @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  user_id    String
+  user_name  String
+  action     String
+  details    Json
+  created_at DateTime @default(now())
+
+  @@index([ticket_id])
+  @@map("audit_logs")
+}
