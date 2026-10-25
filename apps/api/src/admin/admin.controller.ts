@@ -53,6 +53,20 @@ export class AdminController {
     return this.adminService.getDashboard();
   }
 
+  @Get('authors')
+  @ApiOperation({ summary: 'Get all authors directory with publishing statistics' })
+  @ApiResponse({ status: 200, description: 'Authors directory' })
+  getAuthors() {
+    return this.adminService.getAuthors();
+  }
+
+  @Get('books')
+  @ApiOperation({ summary: 'Get all books master catalog' })
+  @ApiResponse({ status: 200, description: 'Master book catalog' })
+  getBooks() {
+    return this.adminService.getBooks();
+  }
+
   @Get('tickets')
   @ApiOperation({ summary: 'Get paginated, filterable global ticket queue' })
   @ApiResponse({ status: 200, description: 'Filtered list of tickets' })

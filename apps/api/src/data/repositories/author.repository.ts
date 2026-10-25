@@ -97,6 +97,32 @@ export class AuthorRepository {
     await this.store.persist();
   }
 
+  async create(author: Author): Promise<Author> {
+    if (this.usePostgres && this.prisma) {
+      const record = await this.prisma.author.create({
+        data: {
+          author_id: author.author_id,
+          name: author.name,
+          email: author.email,
+          phone: author.phone,
+          city: author.city,
+          joined_date: author.joined_date,
+        },
+      });
+      return {
+        author_id: record.author_id,
+        name: record.name,
+        email: record.email,
+        phone: record.phone,
+        city: record.city,
+        joined_date: record.joined_date,
+      };
+    }
+    this.store.getData().authors.push(author);
+    await this.store.persist();
+    return author;
+  }
+
   async count(): Promise<number> {
     if (this.usePostgres && this.prisma) {
       return this.prisma.author.count();

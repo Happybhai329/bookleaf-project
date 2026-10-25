@@ -135,6 +135,38 @@ export class BookRepository {
     await this.store.persist();
   }
 
+  async create(book: Book): Promise<Book> {
+    if (this.usePostgres && this.prisma) {
+      const record = await this.prisma.book.create({
+        data: {
+          book_id: book.book_id,
+          author_id: book.author_id,
+          title: book.title,
+          isbn: book.isbn,
+          genre: book.genre,
+          publication_date: book.publication_date,
+          status: book.status,
+          mrp: book.mrp !== null ? book.mrp : undefined,
+          author_royalty_per_copy:
+            book.author_royalty_per_copy !== null
+              ? book.author_royalty_per_copy
+              : undefined,
+          total_copies_sold: book.total_copies_sold || 0,
+          total_royalty_earned: book.total_royalty_earned || 0,
+          royalty_paid: book.royalty_paid || 0,
+          royalty_pending: book.royalty_pending || 0,
+          last_royalty_payout_date: book.last_royalty_payout_date,
+          print_partner: book.print_partner,
+          available_on: book.available_on || [],
+        },
+      });
+      return toBook(record);
+    }
+    this.store.getData().books.push(book);
+    await this.store.persist();
+    return book;
+  }
+
   async count(): Promise<number> {
     if (this.usePostgres && this.prisma) {
       return this.prisma.book.count();

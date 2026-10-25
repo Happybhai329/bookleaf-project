@@ -14,6 +14,8 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 import { AuthorService } from './author.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
+import { AuthorReplyDto } from './dto/create-reply.dto';
+import { CreateBookDto } from './dto/create-book.dto';
 import { UserRole } from '@bookleaf/shared';
 
 @ApiTags('Author')
@@ -108,5 +110,45 @@ export class AuthorController {
   @ApiResponse({ status: 404, description: 'Ticket not found' })
   getTicket(@Req() req: Request, @Param('ticketId') ticketId: string) {
     return this.authorService.getTicket(this.getAuthorId(req), ticketId);
+  }
+
+  @Post('tickets/:ticketId/replies')
+  @ApiOperation({ summary: 'Author responds to ticket' })
+  @ApiResponse({ status: 201, description: 'Reply posted' })
+  createReply(
+    @Req() req: Request,
+    @Param('ticketId') ticketId: string,
+    @Body() dto: AuthorReplyDto,
+  ) {
+    const { authorId, userId, userName } = this.getSessionInfo(req);
+    return this.authorService.createReply(
+      authorId,
+      userId,
+      userName,
+      ticketId,
+      dto.content,
+    );
+  }
+
+  @Post('tickets/:ticketId/resolve')
+  @ApiOperation({ summary: 'Author marks query as resolved' })
+  @ApiResponse({ status: 200, description: 'Ticket resolved' })
+  resolveTicket(
+    @Req() req: Request,
+    @Param('ticketId') ticketId: string,
+  ) {
+    const { authorId, userId, userName } = this.getSessionInfo(req);
+    return this.authorService.closeTicket(authorId, userId, userName, ticketId);
+  }
+
+  @Post('books')
+  @ApiOperation({ summary: 'Register a new book title' })
+  @ApiResponse({ status: 201, description: 'Book registered' })
+  createBook(
+    @Req() req: Request,
+    @Body() dto: CreateBookDto,
+  ) {
+    const authorId = this.getAuthorId(req);
+    return this.authorService.createBook(authorId, dto);
   }
 }

@@ -14,11 +14,35 @@ import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  @Throttle({ short: { limit: 20, ttl: 60000 } })
+  @ApiOperation({ summary: 'Register a new author account' })
+  @ApiBody({ type: RegisterDto })
+  @ApiResponse({ status: 201, description: 'Author registered and logged in' })
+  @ApiResponse({ status: 409, description: 'Email already exists' })
+  async register(
+    @Body() registerDto: RegisterDto,
+    @Req() req: Request,
+  ) {
+    const user = await this.authService.register(registerDto);
+
+    // Store new user in session
+    (req.session as any).userId = user.id;
+    (req.session as any).userRole = user.role;
+    (req.session as any).userEmail = user.email;
+    (req.session as any).authorId = user.author_id;
+    (req.session as any).userName = user.display_name;
+
+    return user;
+  }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)

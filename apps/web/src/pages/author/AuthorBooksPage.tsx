@@ -14,13 +14,24 @@ import {
   Calendar,
   Layers,
   ShoppingBag,
+  PlusCircle,
+  X,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export function AuthorBooksPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'LIVE' | 'PRODUCTION'>('ALL');
+  const [showAddModal, setShowAddModal] = useState(false);
 
-  const { data: books, isLoading, error } = useQuery<Book[]>({
+  // New book form state
+  const [newTitle, setNewTitle] = useState('');
+  const [newGenre, setNewGenre] = useState('Literary Fiction');
+  const [newMrp, setNewMrp] = useState('399');
+  const [newFormat, setNewFormat] = useState('Paperback');
+  const [submittingBook, setSubmittingBook] = useState(false);
+
+  const { data: books, isLoading, error, refetch } = useQuery<Book[]>({
     queryKey: ['author', 'books'],
     queryFn: () => apiRequest<Book[]>('/author/books'),
   });
@@ -68,8 +79,17 @@ export function AuthorBooksPage() {
           </p>
         </div>
 
-        {/* Filter controls */}
+        {/* Filter controls & Action */}
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="btn-primary py-2 px-3 text-xs bg-emerald-600 hover:bg-emerald-500 flex items-center shadow-sm"
+          >
+            <PlusCircle className="w-3.5 h-3.5 mr-1.5" />
+            Register New Title
+          </button>
+
           {/* Search */}
           <div className="relative">
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
@@ -259,6 +279,129 @@ export function AuthorBooksPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Register Title Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 max-w-lg w-full overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center space-x-2">
+                <BookOpen className="w-4 h-4 text-emerald-600" />
+                <h3 className="text-sm font-bold text-gray-900">Register New Book Title</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="text-gray-400 hover:text-gray-600 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newTitle.trim()) {
+                  toast.error('Title is required');
+                  return;
+                }
+
+                setSubmittingBook(true);
+                try {
+                  await apiRequest('/author/books', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      title: newTitle.trim(),
+                      genre: newGenre,
+                      mrp: parseFloat(newMrp) || 299,
+                      status: 'Manuscript Submitted',
+                      available_on: ['BookLeaf Bookstore', 'Amazon India'],
+                    }),
+                  });
+                  toast.success('Title registered successfully!');
+                  setShowAddModal(false);
+                  setNewTitle('');
+                  refetch();
+                } catch (err: any) {
+                  toast.error(err.message || 'Failed to register title');
+                } finally {
+                  setSubmittingBook(false);
+                }
+              }}
+              className="p-6 space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Book Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="e.g. Echoes of the Silent Valley"
+                  className="input-field text-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Genre / Category
+                  </label>
+                  <select
+                    value={newGenre}
+                    onChange={(e) => setNewGenre(e.target.value)}
+                    className="input-field text-xs py-2"
+                  >
+                    <option value="Literary Fiction">Literary Fiction</option>
+                    <option value="Poetry">Poetry</option>
+                    <option value="Non-Fiction / Memoir">Non-Fiction / Memoir</option>
+                    <option value="Thriller / Mystery">Thriller / Mystery</option>
+                    <option value="Self-Help / Motivation">Self-Help / Motivation</option>
+                    <option value="Sci-Fi / Fantasy">Sci-Fi / Fantasy</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Planned Retail Price (₹)
+                  </label>
+                  <input
+                    type="number"
+                    min="99"
+                    max="4999"
+                    value={newMrp}
+                    onChange={(e) => setNewMrp(e.target.value)}
+                    className="input-field text-xs py-2"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 text-xs text-emerald-800">
+                💡 <strong>Standard BookLeaf Royalties:</strong> 15% royalty per sold copy (₹{Math.round((parseFloat(newMrp) || 299) * 0.15)} / copy). Titles will be listed across Amazon India, Flipkart, and the BookLeaf store once approved.
+              </div>
+
+              <div className="flex items-center justify-end space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="btn-secondary py-2 px-4 text-xs font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingBook}
+                  className="btn-primary py-2 px-4 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500"
+                >
+                  {submittingBook ? 'Registering...' : 'Register Title'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

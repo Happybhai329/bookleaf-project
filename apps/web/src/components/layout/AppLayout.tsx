@@ -13,6 +13,8 @@ import {
   ShieldCheck,
   User,
   Inbox,
+  Users,
+  Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -43,6 +45,8 @@ export function AppLayout() {
   const adminNav = [
     { to: '/admin/dashboard', label: 'Operations Overview', icon: LayoutDashboard },
     { to: '/admin/tickets', label: 'Global Ticket Queue', icon: Inbox },
+    { to: '/admin/authors', label: 'Authors Directory', icon: Users },
+    { to: '/admin/books', label: 'Master Book Catalog', icon: BookOpen },
   ];
 
   const navItems = isAdmin ? adminNav : authorNav;
@@ -179,6 +183,32 @@ export function AppLayout() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        {/* Desktop Top Header Bar */}
+        <header className="hidden md:flex h-16 bg-white border-b border-gray-200 px-8 items-center justify-between shrink-0">
+          <div className="flex items-center space-x-3">
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              {isAdmin ? 'Staff Operations Console' : 'Author Workspace'}
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-6 text-xs text-gray-600">
+            <div className="flex items-center space-x-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="font-medium text-gray-700">Supabase Connected</span>
+            </div>
+            <div className="flex items-center space-x-1.5 text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-200 font-semibold">
+              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+              <span>Gemini 2.5 Flash Online</span>
+            </div>
+            <div className="flex items-center space-x-2 pl-2 border-l border-gray-200">
+              <div className="w-7 h-7 rounded-full bg-navy-900 text-white flex items-center justify-center font-bold text-xs">
+                {user?.display_name ? user.display_name.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <span className="font-bold text-gray-900">{user?.display_name}</span>
+            </div>
+          </div>
+        </header>
+
         <div className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto">
           <Outlet />
         </div>

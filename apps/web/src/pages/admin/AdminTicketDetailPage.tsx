@@ -433,14 +433,14 @@ export function AdminTicketDetailPage() {
                       ? 'bg-purple-100 text-purple-800 border border-purple-200'
                       : ticket.ai_classification.provider === 'fallback'
                       ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                      : 'bg-navy-100 text-navy-800'
+                      : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                   }`}
                 >
                   {ticket.ai_classification.provider === 'gemini'
-                    ? 'Google Gemini AI'
+                    ? '⚡ Google Gemini 2.5 Flash'
                     : ticket.ai_classification.provider === 'fallback'
-                    ? 'Fallback'
-                    : 'Mock Provider'}
+                    ? 'Review Required'
+                    : 'BookLeaf AI Engine'}
                 </span>
               </div>
 

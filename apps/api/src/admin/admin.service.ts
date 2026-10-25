@@ -394,4 +394,45 @@ export class AdminService {
 
     return updated;
   }
+
+  async getAuthors(): Promise<any[]> {
+    const authors = await this.authorRepo.findAll();
+    const books = await this.bookRepo.findAll();
+    const tickets = await this.ticketRepo.findAll();
+
+    return authors.map((author) => {
+      const authorBooks = books.filter((b) => b.author_id === author.author_id);
+      const authorTickets = tickets.filter((t) => t.author_id === author.author_id);
+
+      const totalCopiesSold = authorBooks.reduce((sum, b) => sum + (b.total_copies_sold || 0), 0);
+      const totalRoyaltyEarned = authorBooks.reduce((sum, b) => sum + Number(b.total_royalty_earned || 0), 0);
+      const royaltyPending = authorBooks.reduce((sum, b) => sum + Number(b.royalty_pending || 0), 0);
+      const openTicketsCount = authorTickets.filter(
+        (t) => t.status === TicketStatus.OPEN || t.status === TicketStatus.IN_PROGRESS,
+      ).length;
+
+      return {
+        ...author,
+        books_count: authorBooks.length,
+        live_books_count: authorBooks.filter((b) => b.status === 'Published & Live').length,
+        total_copies_sold: totalCopiesSold,
+        total_royalty_earned: totalRoyaltyEarned,
+        royalty_pending: royaltyPending,
+        open_tickets_count: openTicketsCount,
+        books: authorBooks,
+      };
+    });
+  }
+
+  async getBooks(): Promise<any[]> {
+    const books = await this.bookRepo.findAll();
+    const authors = await this.authorRepo.findAll();
+    const authorMap = new Map(authors.map((a) => [a.author_id, a]));
+
+    return books.map((b) => ({
+      ...b,
+      author_name: authorMap.get(b.author_id)?.name || 'Unknown Author',
+      author_email: authorMap.get(b.author_id)?.email || '',
+    }));
+  }
 }

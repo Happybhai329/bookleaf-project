@@ -10,6 +10,7 @@ import { AuthorRepository } from '../data/repositories/author.repository';
 import { BookRepository } from '../data/repositories/book.repository';
 import { TicketRepository } from '../data/repositories/ticket.repository';
 import { TicketMessageRepository } from '../data/repositories/ticket-message.repository';
+import { AuditRepository } from '../data/repositories/audit.repository';
 import { AiService } from '../ai/ai.service';
 import {
   TicketStatus,
@@ -25,6 +26,7 @@ import type {
   TicketMessage,
   AuthorDashboard,
 } from '@bookleaf/shared';
+import { CreateBookDto } from './dto/create-book.dto';
 
 @Injectable()
 export class AuthorService {
@@ -35,6 +37,7 @@ export class AuthorService {
     private readonly bookRepo: BookRepository,
     private readonly ticketRepo: TicketRepository,
     private readonly messageRepo: TicketMessageRepository,
+    private readonly auditRepo: AuditRepository,
     private readonly aiService: AiService,
   ) {}
 
@@ -225,5 +228,110 @@ export class AuthorService {
       : null;
 
     return { ticket, messages, book };
+  }
+
+  async createReply(
+    authorId: string,
+    userId: string,
+    userName: string,
+    ticketId: string,
+    content: string,
+  ): Promise<TicketMessage> {
+    const ticket = await this.ticketRepo.findById(ticketId);
+    if (!ticket) throw new NotFoundException('Ticket not found');
+    if (ticket.author_id !== authorId) {
+      throw new ForbiddenException('You do not have access to this ticket');
+    }
+
+    const message: TicketMessage = {
+      id: uuidv4(),
+      ticket_id: ticketId,
+      sender_id: userId,
+      sender_name: userName,
+      sender_role: UserRole.AUTHOR,
+      visibility: MessageVisibility.PUBLIC,
+      content: content.trim(),
+      is_ai_draft: false,
+      created_at: new Date().toISOString(),
+    };
+
+    const saved = await this.messageRepo.create(message);
+
+    // If ticket was resolved or closed, author reply moves it back to in progress
+    const updateData: Partial<Ticket> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (ticket.status === TicketStatus.RESOLVED || ticket.status === TicketStatus.CLOSED) {
+      updateData.status = TicketStatus.IN_PROGRESS;
+    }
+    await this.ticketRepo.update(ticketId, updateData);
+
+    await this.auditRepo.create(
+      ticketId,
+      userId,
+      userName,
+      'AUTHOR_REPLY',
+      { messageId: saved.id },
+    );
+
+    return saved;
+  }
+
+  async closeTicket(
+    authorId: string,
+    userId: string,
+    userName: string,
+    ticketId: string,
+  ): Promise<Ticket> {
+    const ticket = await this.ticketRepo.findById(ticketId);
+    if (!ticket) throw new NotFoundException('Ticket not found');
+    if (ticket.author_id !== authorId) {
+      throw new ForbiddenException('You do not have access to this ticket');
+    }
+
+    const updated = await this.ticketRepo.update(ticketId, {
+      status: TicketStatus.RESOLVED,
+      updated_at: new Date().toISOString(),
+    });
+
+    await this.auditRepo.create(
+      ticketId,
+      userId,
+      userName,
+      'AUTHOR_RESOLVED_TICKET',
+      { previousStatus: ticket.status },
+    );
+
+    return updated || ticket;
+  }
+
+  async createBook(authorId: string, dto: CreateBookDto): Promise<Book> {
+    const count = await this.bookRepo.count();
+    const bookId = `BK${String(count + 1).padStart(3, '0')}`;
+    const mrp = dto.mrp || 299;
+    const royaltyPerCopy = Math.round(mrp * 0.15); // standard 15% royalty
+
+    const book: Book = {
+      book_id: bookId,
+      author_id: authorId,
+      title: dto.title.trim(),
+      isbn: dto.isbn?.trim() || `978-93-${Math.floor(1000000 + Math.random() * 9000000)}`,
+      genre: dto.genre.trim(),
+      publication_date: new Date().toISOString().slice(0, 10),
+      status: dto.status?.trim() || 'In Review / Production',
+      mrp,
+      author_royalty_per_copy: royaltyPerCopy,
+      total_copies_sold: 0,
+      total_royalty_earned: 0,
+      royalty_paid: 0,
+      royalty_pending: 0,
+      last_royalty_payout_date: null,
+      print_partner: 'Repro Books India',
+      available_on: dto.available_on?.length
+        ? dto.available_on
+        : ['Amazon India', 'Flipkart', 'BookLeaf Bookstore'],
+    };
+
+    return this.bookRepo.create(book);
   }
 }

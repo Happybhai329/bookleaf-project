@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
 import type { Ticket, TicketMessage, Book } from '@bookleaf/shared';
+import { TicketStatus } from '@bookleaf/shared';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { StatusBadge, CategoryBadge, BookStatusBadge } from '@/components/common/StatusBadge';
@@ -15,7 +16,10 @@ import {
   User,
   Radio,
   Clock,
+  Send,
+  CheckCircle2,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface AuthorTicketDetailResponse {
   ticket: Ticket;
@@ -25,9 +29,12 @@ interface AuthorTicketDetailResponse {
 
 export function AuthorTicketDetailPage() {
   const { ticketId } = useParams<{ ticketId: string }>();
+  const [replyText, setReplyText] = useState('');
+  const [submittingReply, setSubmittingReply] = useState(false);
+  const [resolvingTicket, setResolvingTicket] = useState(false);
 
   // Poll every 5 seconds as required by the technical assignment
-  const { data, isLoading, error, dataUpdatedAt } = useQuery<AuthorTicketDetailResponse>({
+  const { data, isLoading, error, refetch } = useQuery<AuthorTicketDetailResponse>({
     queryKey: ['author', 'ticket', ticketId],
     queryFn: () => apiRequest<AuthorTicketDetailResponse>(`/author/tickets/${ticketId}`),
     refetchInterval: 5000,
@@ -206,6 +213,80 @@ export function AuthorTicketDetailPage() {
             </p>
           </div>
         )}
+
+        {/* Author Reply Composer & Actions */}
+        <div className="card p-6 border-navy-200 bg-white shadow-sm mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-gray-900 flex items-center">
+              <MessageSquare className="w-4 h-4 mr-2 text-navy-700" />
+              Send a Follow-up Message
+            </h3>
+            {ticket.status !== TicketStatus.RESOLVED && ticket.status !== TicketStatus.CLOSED && (
+              <button
+                type="button"
+                disabled={resolvingTicket}
+                onClick={async () => {
+                  setResolvingTicket(true);
+                  try {
+                    await apiRequest(`/author/tickets/${ticketId}/resolve`, { method: 'POST' });
+                    toast.success('Ticket marked as resolved');
+                    refetch();
+                  } catch (err: any) {
+                    toast.error(err.message || 'Failed to update ticket');
+                  } finally {
+                    setResolvingTicket(false);
+                  }
+                }}
+                className="text-xs text-emerald-700 hover:text-emerald-800 font-semibold flex items-center bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 transition-colors"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                {resolvingTicket ? 'Resolving...' : 'Mark Issue as Resolved'}
+              </button>
+            )}
+          </div>
+
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!replyText.trim()) return;
+
+              setSubmittingReply(true);
+              try {
+                await apiRequest(`/author/tickets/${ticketId}/replies`, {
+                  method: 'POST',
+                  body: JSON.stringify({ content: replyText.trim() }),
+                });
+                setReplyText('');
+                toast.success('Your message has been sent to BookLeaf support');
+                refetch();
+              } catch (err: any) {
+                toast.error(err.message || 'Failed to send reply');
+              } finally {
+                setSubmittingReply(false);
+              }
+            }}
+            className="space-y-3"
+          >
+            <textarea
+              rows={4}
+              required
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder="Type your response or provide additional details for the support team..."
+              className="input-field text-sm font-sans"
+            />
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={submittingReply || !replyText.trim()}
+                className="btn-primary py-2.5 px-5 text-xs font-semibold flex items-center"
+              >
+                <Send className="w-3.5 h-3.5 mr-1.5" />
+                {submittingReply ? 'Sending Message...' : 'Send Message'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

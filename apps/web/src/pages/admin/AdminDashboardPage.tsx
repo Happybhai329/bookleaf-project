@@ -53,10 +53,18 @@ export function AdminDashboardPage() {
           </p>
         </div>
 
-        <Link to="/admin/tickets" className="btn-primary self-start sm:self-auto text-xs sm:text-sm">
-          <Inbox className="w-4 h-4 mr-2" />
-          Open Global Ticket Queue
-        </Link>
+        <div className="flex flex-wrap gap-2.5 self-start sm:self-auto">
+          <Link to="/admin/authors" className="btn-secondary text-xs sm:text-sm py-2 px-3">
+            Authors Directory
+          </Link>
+          <Link to="/admin/books" className="btn-secondary text-xs sm:text-sm py-2 px-3">
+            Book Catalog
+          </Link>
+          <Link to="/admin/tickets" className="btn-primary text-xs sm:text-sm py-2 px-3">
+            <Inbox className="w-4 h-4 mr-1.5" />
+            Global Ticket Queue
+          </Link>
+        </div>
       </div>
 
       {/* Urgent Attention Grid */}

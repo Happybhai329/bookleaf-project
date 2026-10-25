@@ -15,6 +15,8 @@ import { AuthorTicketDetailPage } from '@/pages/author/AuthorTicketDetailPage';
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage';
 import { AdminTicketsPage } from '@/pages/admin/AdminTicketsPage';
 import { AdminTicketDetailPage } from '@/pages/admin/AdminTicketDetailPage';
+import { AdminAuthorsPage } from '@/pages/admin/AdminAuthorsPage';
+import { AdminBooksPage } from '@/pages/admin/AdminBooksPage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -147,6 +149,22 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
               <AdminTicketDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/authors"
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+              <AdminAuthorsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/books"
+          element={
+            <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+              <AdminBooksPage />
             </ProtectedRoute>
           }
         />
