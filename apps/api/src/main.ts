@@ -17,9 +17,14 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Trust proxy for secure cookies behind Render/Cloudflare reverse proxy
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', 1);
+
   // CORS
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: [frontendUrl, 'http://localhost:5173', 'http://localhost:3000'],
     credentials: true,
   });
 
@@ -27,6 +32,12 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // Session
+  const isProduction = process.env.NODE_ENV === 'production';
+  const cookieSecure =
+    process.env.COOKIE_SECURE !== undefined
+      ? process.env.COOKIE_SECURE === 'true'
+      : isProduction;
+
   app.use(
     session({
       secret: process.env.SESSION_SECRET || 'bookleaf-dev-secret',
@@ -34,8 +45,8 @@ async function bootstrap() {
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        secure: cookieSecure,
+        sameSite: 'lax',
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
       },
     }),
@@ -81,7 +92,7 @@ async function bootstrap() {
   }
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`🍃 BookLeaf API running on http://localhost:${port}`);
   console.log(`📖 Swagger docs at http://localhost:${port}/api/docs`);
 }
