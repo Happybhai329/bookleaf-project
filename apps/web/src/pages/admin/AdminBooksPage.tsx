@@ -4,6 +4,7 @@ import { apiRequest } from '@/lib/api';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { BookStatusBadge } from '@/components/common/StatusBadge';
+import toast from 'react-hot-toast';
 import {
   BookOpen,
   Search,
@@ -13,6 +14,9 @@ import {
   ShoppingBag,
   Layers,
   Filter,
+  Edit3,
+  X,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface MasterBook {
@@ -33,14 +37,66 @@ interface MasterBook {
   available_on: string[];
 }
 
+const PRODUCTION_STAGES = [
+  'Manuscript Submitted',
+  'Editing & Typesetting',
+  'Cover Design & Proof Approval',
+  'Author Proof Review',
+  'ISBN Assignment',
+  'Sample Proof Printing',
+  'Distribution Propagation',
+  'Published & Live',
+];
+
 export function AdminBooksPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'LIVE' | 'PRODUCTION'>('ALL');
 
-  const { data: books, isLoading, error } = useQuery<MasterBook[]>({
+  // Edit Modal State
+  const [editingBook, setEditingBook] = useState<MasterBook | null>(null);
+  const [editStatus, setEditStatus] = useState('');
+  const [editMrp, setEditMrp] = useState<number>(0);
+  const [editCopiesSold, setEditCopiesSold] = useState<number>(0);
+  const [editPrintPartner, setEditPrintPartner] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const { data: books, isLoading, error, refetch } = useQuery<MasterBook[]>({
     queryKey: ['admin', 'books'],
     queryFn: () => apiRequest<MasterBook[]>('/admin/books'),
   });
+
+  const handleOpenEdit = (b: MasterBook) => {
+    setEditingBook(b);
+    setEditStatus(b.status);
+    setEditMrp(b.mrp || 399);
+    setEditCopiesSold(b.total_copies_sold || 0);
+    setEditPrintPartner(b.print_partner || 'Repro Books India');
+  };
+
+  const handleSaveBook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBook) return;
+
+    setSaving(true);
+    try {
+      await apiRequest(`/admin/books/${editingBook.book_id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: editStatus,
+          mrp: Number(editMrp),
+          total_copies_sold: Number(editCopiesSold),
+          print_partner: editPrintPartner,
+        }),
+      });
+      toast.success(`Updated "${editingBook.title}" successfully!`);
+      setEditingBook(null);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update book');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (isLoading) {
     return <LoadingSpinner message="Loading master book catalog..." />;
@@ -84,7 +140,7 @@ export function AdminBooksPage() {
             Master Book Catalog ({totalTitles})
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Complete publishing database across all BookLeaf author contracts and print runs.
+            Complete publishing database across all BookLeaf author contracts, production stages, and print runs.
           </p>
         </div>
 
@@ -147,11 +203,12 @@ export function AdminBooksPage() {
                 <th className="py-3 px-4">Title & ISBN</th>
                 <th className="py-3 px-4">Author</th>
                 <th className="py-3 px-4">Genre</th>
-                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4">Status / Stage</th>
                 <th className="py-3 px-4 text-right">MRP</th>
                 <th className="py-3 px-4 text-right">Copies Sold</th>
                 <th className="py-3 px-4">Print Partner</th>
                 <th className="py-3 px-4">Channels</th>
+                <th className="py-3 px-4 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -194,12 +251,130 @@ export function AdminBooksPage() {
                       )}
                     </div>
                   </td>
+                  <td className="py-3 px-4 text-right">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEdit(b)}
+                      className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-navy-50 hover:text-navy-700 shadow-xs transition-colors"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 mr-1" />
+                      Manage Stage
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Edit Stage & Sales Modal */}
+      {editingBook && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden border border-gray-200 animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-4 bg-navy-950 text-white flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-base">Advance Production Stage</h3>
+                <p className="text-xs text-navy-200 mt-0.5 font-mono">{editingBook.title} ({editingBook.book_id})</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingBook(null)}
+                className="text-gray-400 hover:text-white p-1 rounded-md"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBook} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Production Stage / Status
+                </label>
+                <select
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value)}
+                  className="input-field text-xs py-2 w-full font-medium"
+                >
+                  {PRODUCTION_STAGES.map((stg) => (
+                    <option key={stg} value={stg}>
+                      {stg}
+                    </option>
+                  ))}
+                  {/* Keep custom status if not in list */}
+                  {!PRODUCTION_STAGES.includes(editStatus) && (
+                    <option value={editStatus}>{editStatus}</option>
+                  )}
+                </select>
+                <span className="text-[11px] text-gray-500 mt-1 block">
+                  Selecting <strong>Published & Live</strong> enables public sales tracking and author royalty payouts.
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Retail Price (MRP ₹)
+                  </label>
+                  <input
+                    type="number"
+                    min="99"
+                    max="9999"
+                    value={editMrp}
+                    onChange={(e) => setEditMrp(Number(e.target.value))}
+                    className="input-field text-xs py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    Copies Sold
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editCopiesSold}
+                    onChange={(e) => setEditCopiesSold(Number(e.target.value))}
+                    className="input-field text-xs py-2"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Print Partner
+                </label>
+                <select
+                  value={editPrintPartner}
+                  onChange={(e) => setEditPrintPartner(e.target.value)}
+                  className="input-field text-xs py-2 w-full"
+                >
+                  <option value="Repro Books India">Repro Books India</option>
+                  <option value="In-house Delhi facility">In-house Delhi facility</option>
+                  <option value="Epitome Books">Epitome Books</option>
+                </select>
+              </div>
+
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingBook(null)}
+                  className="btn-secondary py-1.5 px-3 text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-primary py-1.5 px-4 text-xs font-semibold flex items-center"
+                >
+                  {saving ? 'Updating...' : 'Save & Advance Stage'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -173,4 +173,39 @@ export class BookRepository {
     }
     return this.store.getData().books.length;
   }
+
+  async update(bookId: string, data: Partial<Book>): Promise<Book | undefined> {
+    if (this.usePostgres && this.prisma) {
+      const updateData: any = {};
+      if (data.status !== undefined) updateData.status = data.status;
+      if (data.mrp !== undefined) updateData.mrp = data.mrp;
+      if (data.author_royalty_per_copy !== undefined)
+        updateData.author_royalty_per_copy = data.author_royalty_per_copy;
+      if (data.total_copies_sold !== undefined)
+        updateData.total_copies_sold = data.total_copies_sold;
+      if (data.total_royalty_earned !== undefined)
+        updateData.total_royalty_earned = data.total_royalty_earned;
+      if (data.royalty_paid !== undefined)
+        updateData.royalty_paid = data.royalty_paid;
+      if (data.royalty_pending !== undefined)
+        updateData.royalty_pending = data.royalty_pending;
+      if (data.last_royalty_payout_date !== undefined)
+        updateData.last_royalty_payout_date = data.last_royalty_payout_date;
+      if (data.print_partner !== undefined)
+        updateData.print_partner = data.print_partner;
+      if (data.available_on !== undefined)
+        updateData.available_on = data.available_on;
+
+      const record = await this.prisma.book.update({
+        where: { book_id: bookId },
+        data: updateData,
+      });
+      return toBook(record);
+    }
+    const idx = this.store.getData().books.findIndex((b) => b.book_id === bookId);
+    if (idx === -1) return undefined;
+    this.store.getData().books[idx] = { ...this.store.getData().books[idx], ...data };
+    await this.store.persist();
+    return this.store.getData().books[idx];
+  }
 }

@@ -24,6 +24,8 @@ import { GenerateDraftDto } from './dto/generate-draft.dto';
 import { UserRole } from '@bookleaf/shared';
 import type { AuthUser } from '@bookleaf/shared';
 
+import { UpdateBookDto } from './dto/update-book.dto';
+
 @ApiTags('Admin')
 @ApiCookieAuth()
 @Controller('admin')
@@ -65,6 +67,16 @@ export class AdminController {
   @ApiResponse({ status: 200, description: 'Master book catalog' })
   getBooks() {
     return this.adminService.getBooks();
+  }
+
+  @Patch('books/:bookId')
+  @ApiOperation({ summary: 'Update book production status, MRP, or sales figures' })
+  @ApiResponse({ status: 200, description: 'Book updated successfully' })
+  updateBook(
+    @Param('bookId') bookId: string,
+    @Body() dto: UpdateBookDto,
+  ) {
+    return this.adminService.updateBook(bookId, dto);
   }
 
   @Get('tickets')

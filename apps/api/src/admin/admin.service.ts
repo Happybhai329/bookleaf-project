@@ -38,6 +38,8 @@ export interface EnrichedTicket extends Ticket {
   book_title: string | null;
 }
 
+import { UpdateBookDto } from './dto/update-book.dto';
+
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
@@ -434,5 +436,46 @@ export class AdminService {
       author_name: authorMap.get(b.author_id)?.name || 'Unknown Author',
       author_email: authorMap.get(b.author_id)?.email || '',
     }));
+  }
+
+  async updateBook(bookId: string, dto: UpdateBookDto): Promise<any> {
+    const book = await this.bookRepo.findById(bookId);
+    if (!book) {
+      throw new NotFoundException(`Book with ID ${bookId} not found`);
+    }
+
+    const totalCopiesSold =
+      dto.total_copies_sold !== undefined
+        ? dto.total_copies_sold
+        : book.total_copies_sold;
+    const mrp = dto.mrp !== undefined ? dto.mrp : book.mrp;
+    const royaltyPerCopy =
+      dto.author_royalty_per_copy !== undefined
+        ? dto.author_royalty_per_copy
+        : (book.author_royalty_per_copy ?? (mrp ? Math.round(mrp * 0.15) : 60));
+
+    const totalEarned =
+      dto.total_royalty_earned !== undefined
+        ? dto.total_royalty_earned
+        : totalCopiesSold * royaltyPerCopy;
+
+    const royaltyPaid =
+      dto.royalty_paid !== undefined ? dto.royalty_paid : book.royalty_paid;
+    const royaltyPending =
+      dto.royalty_pending !== undefined
+        ? dto.royalty_pending
+        : Math.max(0, totalEarned - royaltyPaid);
+
+    const updated = await this.bookRepo.update(bookId, {
+      ...dto,
+      mrp,
+      author_royalty_per_copy: royaltyPerCopy,
+      total_copies_sold: totalCopiesSold,
+      total_royalty_earned: totalEarned,
+      royalty_paid: royaltyPaid,
+      royalty_pending: royaltyPending,
+    });
+
+    return updated;
   }
 }

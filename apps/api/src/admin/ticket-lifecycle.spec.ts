@@ -10,6 +10,7 @@ import { AuditRepository } from '../data/repositories/audit.repository';
 import { AiService } from '../ai/ai.service';
 import { MockAiProvider } from '../ai/mock-ai.provider';
 import { KnowledgeBaseService } from '../knowledge-base/knowledge-base.service';
+import { SeedService } from '../data/seed.service';
 import { ForbiddenException, BadRequestException } from '@nestjs/common';
 import {
   TicketCategory,
@@ -63,6 +64,16 @@ describe('Ticket Lifecycle, Overrides, and Filtering', () => {
       auditRepo,
       aiService,
     );
+
+    const seedService = new SeedService(
+      store,
+      userRepo,
+      authorRepo,
+      bookRepo,
+      ticketRepo,
+      messageRepo,
+    );
+    await seedService.seed();
   });
 
   it('Requirement 8: Rejects ticket creation if author selects a book belonging to another author', async () => {

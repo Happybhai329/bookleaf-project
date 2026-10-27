@@ -11,6 +11,7 @@ import { AuditRepository } from '../data/repositories/audit.repository';
 import { AiService } from '../ai/ai.service';
 import { MockAiProvider } from '../ai/mock-ai.provider';
 import { KnowledgeBaseService } from '../knowledge-base/knowledge-base.service';
+import { SeedService } from '../data/seed.service';
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { UserRole, MessageVisibility } from '@bookleaf/shared';
 
@@ -52,6 +53,16 @@ describe('Auth, Ownership, and Security Isolation', () => {
       auditRepo,
       aiService,
     );
+
+    const seedService = new SeedService(
+      store,
+      userRepo,
+      authorRepo,
+      bookRepo,
+      ticketRepo,
+      messageRepo,
+    );
+    await seedService.seed();
   });
 
   it('Requirement 3: Author can authenticate with valid credentials and retrieve own profile/books', async () => {
