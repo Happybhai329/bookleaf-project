@@ -351,7 +351,7 @@ export function AdminTicketDetailPage() {
 
               <form onSubmit={handleSendReply} className="space-y-3">
                 <textarea
-                  rows={6}
+                  rows={8}
                   required
                   placeholder="Compose official response to author, or click 'Generate AI Draft' to draft from BookLeaf Knowledge Base policies..."
                   value={replyContent}

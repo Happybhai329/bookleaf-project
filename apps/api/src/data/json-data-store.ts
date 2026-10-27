@@ -73,6 +73,13 @@ export class JsonDataStore {
       try {
         const raw = fs.readFileSync(this.storePath, 'utf-8');
         const parsed = JSON.parse(raw) as DataStore;
+        if (!parsed.meta) {
+          parsed.meta = {
+            seeded: (parsed.tickets?.length || 0) > 0,
+            last_updated: new Date().toISOString(),
+            ticket_counter: parsed.tickets?.length || 0,
+          };
+        }
         this.logger.log('Loaded existing dev-store.json');
         return parsed;
       } catch (err) {

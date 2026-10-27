@@ -142,7 +142,11 @@ Classify this ticket accurately.`;
         ],
         generationConfig: {
           temperature: 0.1,
+          maxOutputTokens: 2048,
           responseMimeType: 'application/json',
+          ...(this.model.includes('2.5') || this.model.includes('2.0')
+            ? { thinkingConfig: { thinkingBudget: 0 } }
+            : {}),
           responseSchema: {
             type: 'OBJECT',
             properties: {
@@ -180,10 +184,11 @@ Classify this ticket accurately.`;
         },
       };
 
-      const data = await this.executeGenerateContent(payload, 15000, 2);
+      const data = await this.executeGenerateContent(payload, 20000, 2);
 
       const candidate = data?.candidates?.[0];
-      const text = candidate?.content?.parts?.[0]?.text;
+      const parts = candidate?.content?.parts || [];
+      const text = parts.map((p: any) => p.text || '').join('').trim();
 
       if (!text) {
         throw new Error('Empty response from Gemini API');
@@ -239,28 +244,30 @@ Classify this ticket accurately.`;
   ): Promise<DraftResult> {
     try {
       const systemInstruction = `You are an empathetic, knowledgeable, and professional author support specialist at BookLeaf Publishing, an author-first self-publishing company.
-Your task is to draft an official, polite response to an author's support ticket.
+Your task is to draft a comprehensive, official, and polite response to an author's support ticket.
 
 GROUNDING POLICIES:
 ${knowledgeContext}
 
 STRICT GUIDELINES:
 1. Greet the author warmly by name (${ticketContext.author.name}).
-2. Ground your response firmly in the BookLeaf policies provided above. Do not contradict them.
-3. If referring to financial figures, copies sold, or dates, use ONLY the numbers provided in the context below. Never hallucinate or invent numbers, payout amounts, or transaction IDs.
-4. For royalty questions:
+2. Provide a thorough, well-structured response (typically 3-4 cohesive paragraphs) addressing every facet of their inquiry with clarity.
+3. Ground your response firmly in the BookLeaf policies provided above. Do not contradict them.
+4. If referring to financial figures, copies sold, or dates, use ONLY the numbers provided in the context below. Never hallucinate or invent numbers, payout amounts, or transaction IDs.
+5. For royalty questions:
    - Remind the author that BookLeaf calculates royalties quarterly and pays within 45 days of the quarter ending.
    - Explain the 80/20 net profit split (80% to author, 20% to BookLeaf).
    - If accumulated pending royalties are below the ₹1,000 threshold, gently explain that amounts below ₹1,000 roll over to the next cycle.
-5. For printing & physical defect questions:
+6. For printing & physical defect questions:
    - Note our 5-7 business day turnaround for resolution.
    - For misprints or defects, kindly request high-resolution photographs of the issue (cover, binding, interior pages) so our quality assurance team can immediately approve a free reprint.
-6. For distribution & availability questions:
+7. For distribution & availability questions:
    - Note that new listings typically take 7-10 business days to propagate across partner platforms (Amazon India, Flipkart, Amazon US/UK).
-   - If an active book is out-of-stock or unlinked, offer to initiate a 24-48 hour stock re-sync with the channel.
-7. Address any previous dialogue context constructively without repeating yourself needlessly.
-8. Tone: Professional, encouraging, respectful of the author's creative work, and reassuring.
-9. Output ONLY the response body text ready for support staff to review and send. Do NOT include greetings to the staff or meta-commentary like "Here is a draft response:".`;
+   - If an active book is out-of-stock, price-discrepant, or unlinked, offer to initiate a 24-48 hour stock/metadata re-sync with the channel.
+8. Address any previous dialogue context constructively without repeating yourself needlessly.
+9. Tone: Professional, encouraging, respectful of the author's creative work, and reassuring.
+10. End with a polite closing sign-off from "The BookLeaf Support Team".
+11. Output ONLY the response body text ready for support staff to review and send. Do NOT include greetings to the staff or meta-commentary like "Here is a draft response:".`;
 
       const bookContextText = ticketContext.book
         ? `Book Title: ${ticketContext.book.title}
@@ -314,21 +321,29 @@ Please compose the draft response to the author.`;
         ],
         generationConfig: {
           temperature: 0.3,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 4096,
+          ...(this.model.includes('2.5') || this.model.includes('2.0')
+            ? { thinkingConfig: { thinkingBudget: 0 } }
+            : {}),
         },
       };
 
-      const data = await this.executeGenerateContent(payload, 20000, 2);
+      const data = await this.executeGenerateContent(payload, 30000, 2);
 
       const candidate = data?.candidates?.[0];
-      const text = candidate?.content?.parts?.[0]?.text;
+      if (candidate?.finishReason && candidate.finishReason !== 'STOP') {
+        this.logger.warn(`Gemini reply draft finishReason: ${candidate.finishReason}`);
+      }
 
-      if (!text || text.trim().length === 0) {
+      const parts = candidate?.content?.parts || [];
+      const text = parts.map((p: any) => p.text || '').join('').trim();
+
+      if (!text || text.length === 0) {
         throw new Error('Empty response generated by Gemini');
       }
 
       return {
-        content: text.trim(),
+        content: text,
         provider: 'gemini',
         generated_at: new Date().toISOString(),
       };

@@ -7,7 +7,7 @@
     "build": "nest build",
     "start": "node dist/main",
     "start:prod": "node dist/main",
-    "test": "jest --passWithNoTests",
+    "test": "jest --passWithNoTests --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json --passWithNoTests",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix"
   },
