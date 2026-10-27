@@ -32,7 +32,9 @@ interface MasterBook {
   author_royalty_per_copy: number | null;
   total_copies_sold: number;
   total_royalty_earned: number;
+  royalty_paid?: number;
   royalty_pending: number;
+  last_royalty_payout_date?: string | null;
   print_partner: string | null;
   available_on: string[];
 }
@@ -73,6 +75,9 @@ export function AdminBooksPage() {
   const [editStatus, setEditStatus] = useState('');
   const [editMrp, setEditMrp] = useState<number>(0);
   const [editCopiesSold, setEditCopiesSold] = useState<number>(0);
+  const [editRoyaltyPerCopy, setEditRoyaltyPerCopy] = useState<number>(60);
+  const [editRoyaltyPaid, setEditRoyaltyPaid] = useState<number>(0);
+  const [editLastPayoutDate, setEditLastPayoutDate] = useState<string>('');
   const [editPrintPartner, setEditPrintPartner] = useState('');
   const [editAvailableOn, setEditAvailableOn] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -85,10 +90,22 @@ export function AdminBooksPage() {
   const handleOpenEdit = (b: MasterBook) => {
     setEditingBook(b);
     setEditStatus(b.status);
-    setEditMrp(b.mrp || 399);
+    const mrp = b.mrp || 399;
+    setEditMrp(mrp);
     setEditCopiesSold(b.total_copies_sold || 0);
+    setEditRoyaltyPerCopy(
+      b.author_royalty_per_copy !== null && b.author_royalty_per_copy !== undefined
+        ? b.author_royalty_per_copy
+        : Math.round(mrp * 0.15) || 60,
+    );
+    setEditRoyaltyPaid(b.royalty_paid || 0);
+    setEditLastPayoutDate(b.last_royalty_payout_date || '');
     setEditPrintPartner(b.print_partner || 'Repro Books India');
-    setEditAvailableOn(b.available_on && b.available_on.length > 0 ? [...b.available_on] : ['Amazon India', 'Flipkart', 'BookLeaf Bookstore']);
+    setEditAvailableOn(
+      b.available_on && b.available_on.length > 0
+        ? [...b.available_on]
+        : ['Amazon India', 'Flipkart', 'BookLeaf Bookstore'],
+    );
   };
 
   const handleToggleChannel = (channel: string) => {
@@ -111,6 +128,9 @@ export function AdminBooksPage() {
           status: editStatus,
           mrp: Number(editMrp),
           total_copies_sold: Number(editCopiesSold),
+          author_royalty_per_copy: Number(editRoyaltyPerCopy),
+          royalty_paid: Number(editRoyaltyPaid),
+          last_royalty_payout_date: editLastPayoutDate || undefined,
           print_partner: editPrintPartner,
           available_on: editAvailableOn,
         }),
@@ -233,6 +253,7 @@ export function AdminBooksPage() {
                 <th className="py-3 px-4">Status / Stage</th>
                 <th className="py-3 px-4 text-right">MRP</th>
                 <th className="py-3 px-4 text-right">Copies Sold</th>
+                <th className="py-3 px-4 text-right">Royalties (Earned / Due)</th>
                 <th className="py-3 px-4">Print Partner</th>
                 <th className="py-3 px-4">Channels</th>
                 <th className="py-3 px-4 text-right">Action</th>
@@ -258,6 +279,24 @@ export function AdminBooksPage() {
                   </td>
                   <td className="py-3 px-4 text-right font-bold text-emerald-700">
                     {b.total_copies_sold ? b.total_copies_sold.toLocaleString('en-IN') : '0'}
+                  </td>
+                  <td className="py-3 px-4 text-right font-mono">
+                    <div className="font-semibold text-gray-900">
+                      ₹{(b.total_royalty_earned || 0).toLocaleString('en-IN')}
+                    </div>
+                    <div className="text-[10px] text-gray-500">
+                      Paid: ₹{(b.royalty_paid || 0).toLocaleString('en-IN')}{' '}
+                      <span className="mx-0.5">•</span>{' '}
+                      <span
+                        className={
+                          (b.royalty_pending || 0) >= 1000
+                            ? 'text-emerald-600 font-bold'
+                            : 'text-amber-600 font-medium'
+                        }
+                      >
+                        Due: ₹{(b.royalty_pending || 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
                   </td>
                   <td className="py-3 px-4 text-gray-600 text-[11px]">
                     {b.print_partner || 'Pending allocation'}
@@ -418,6 +457,118 @@ export function AdminBooksPage() {
                     onChange={(e) => setEditCopiesSold(Number(e.target.value))}
                     className="input-field text-xs py-2"
                   />
+                </div>
+              </div>
+
+              {/* Royalty & Payout Management Section */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-navy-950 uppercase tracking-wider flex items-center">
+                    <IndianRupee className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                    Royalty & Payout Reconciliation
+                  </h4>
+                  <span className="text-[10px] text-gray-500 font-medium">80% Net Share Model</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                      Royalty Per Copy (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editRoyaltyPerCopy}
+                      onChange={(e) => setEditRoyaltyPerCopy(Number(e.target.value))}
+                      className="input-field text-xs py-1.5"
+                    />
+                    <span className="text-[10px] text-gray-400 mt-0.5 block">Net author share per copy</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                      Royalty Paid to Date (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editRoyaltyPaid}
+                      onChange={(e) => setEditRoyaltyPaid(Number(e.target.value))}
+                      className="input-field text-xs py-1.5 font-semibold text-emerald-700"
+                    />
+                    <span className="text-[10px] text-gray-400 mt-0.5 block">Transferred to author bank</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-700 mb-1">
+                      Last Payout Date
+                    </label>
+                    <input
+                      type="date"
+                      value={editLastPayoutDate}
+                      onChange={(e) => setEditLastPayoutDate(e.target.value)}
+                      className="input-field text-xs py-1.5"
+                    />
+                  </div>
+
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const totalEarned = editCopiesSold * editRoyaltyPerCopy;
+                        setEditRoyaltyPaid(totalEarned);
+                        setEditLastPayoutDate(new Date().toISOString().split('T')[0]);
+                        toast.success(`Marked all pending royalties as paid (₹${Math.max(0, totalEarned - editRoyaltyPaid)})!`);
+                      }}
+                      className="w-full text-xs font-medium py-1.5 px-2.5 rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors flex items-center justify-center space-x-1"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Record Full Payout</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Live Real-time Calculation Summary Card */}
+                <div className="p-3 bg-white border border-gray-200 rounded-md">
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div>
+                      <div className="text-[10px] text-gray-500 uppercase font-medium">Total Earned</div>
+                      <div className="font-bold text-gray-900 mt-0.5 font-mono">
+                        ₹{(editCopiesSold * editRoyaltyPerCopy).toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-gray-500 uppercase font-medium">Already Paid</div>
+                      <div className="font-bold text-emerald-700 mt-0.5 font-mono">
+                        ₹{Number(editRoyaltyPaid).toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-gray-500 uppercase font-medium">Pending Due</div>
+                      <div
+                        className={`font-bold mt-0.5 font-mono ${
+                          editCopiesSold * editRoyaltyPerCopy - editRoyaltyPaid >= 1000
+                            ? 'text-emerald-600'
+                            : 'text-amber-600'
+                        }`}
+                      >
+                        ₹{Math.max(0, editCopiesSold * editRoyaltyPerCopy - editRoyaltyPaid).toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-gray-100 text-[11px] text-center">
+                    {editCopiesSold * editRoyaltyPerCopy - editRoyaltyPaid >= 1000 ? (
+                      <span className="text-emerald-700 font-semibold">
+                        ✅ ₹1,000 threshold met — Eligible for disbursement in next batch.
+                      </span>
+                    ) : (
+                      <span className="text-amber-700 font-medium">
+                        ⏳ Below ₹1,000 threshold — Rolls over to subsequent quarter.
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
