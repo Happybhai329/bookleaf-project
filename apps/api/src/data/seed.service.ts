@@ -41,19 +41,8 @@ export class SeedService {
 
     if (isPostgres) {
       const authorCount = await this.authorRepo.count();
-      if (authorCount >= 10) {
-        this.logger.log(`PostgreSQL database already has ${authorCount} authors — skipping initial author/book seed`);
-        const ticketCount = await this.ticketRepo.count();
-        if (ticketCount === 0) {
-          this.logger.log('No tickets found in PostgreSQL. Seeding initial demo tickets...');
-          const authors = await this.authorRepo.findAll();
-          const books = await this.bookRepo.findAll();
-          const users = await this.userRepo.findAll();
-          const adminUser = users.find((u) => u.role === UserRole.ADMIN);
-          if (adminUser) {
-            await this.seedDemoTickets(authors, books, users, adminUser);
-          }
-        }
+      if (authorCount > 0) {
+        this.logger.log(`PostgreSQL database already has ${authorCount} authors — skipping seed`);
         return;
       }
     }

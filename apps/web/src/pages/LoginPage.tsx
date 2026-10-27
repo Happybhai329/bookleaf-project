@@ -19,9 +19,7 @@ import toast from 'react-hot-toast';
 
 const TEST_PROFILES = [
   { label: 'Operations Admin', email: 'admin@bookleaf.in', role: 'ADMIN', badge: 'Operations' },
-  { label: 'Priya Sharma (Author)', email: 'priya.sharma@email.com', role: 'AUTHOR', badge: '2 Books' },
-  { label: 'Rohit Kapoor (Author)', email: 'rohit.kapoor@email.com', role: 'AUTHOR', badge: 'Bestseller' },
-  { label: 'Ananya Reddy (Author)', email: 'ananya.reddy@email.com', role: 'AUTHOR', badge: '1 Book' },
+  { label: 'Priya Sharma (Author)', email: 'priya.sharma@email.com', role: 'AUTHOR', badge: 'AUTH001' },
 ];
 
 export function LoginPage() {
