@@ -8,14 +8,39 @@ dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import * as session from 'express-session';
 import { AppModule } from './app.module';
+import { PrismaService } from './data/prisma.service';
+import { PrismaSessionStore } from './auth/session/prisma-session-store';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
+
+  // Verify critical production configuration
+  if (process.env.NODE_ENV === 'production') {
+    const requiredEnv = ['SESSION_SECRET'];
+    if (process.env.DATA_PROVIDER !== 'json') {
+      requiredEnv.push('DATABASE_URL');
+    }
+    if (process.env.AI_PROVIDER === 'gemini') {
+      requiredEnv.push('GEMINI_API_KEY');
+    }
+    const missing = requiredEnv.filter((key) => !process.env[key]);
+    if (missing.length > 0) {
+      logger.error(`Missing critical environment variables: ${missing.join(', ')}`);
+      process.exit(1);
+    }
+  }
+
   const app = await NestFactory.create(AppModule);
+
+  // Enable graceful shutdown hooks (SIGTERM/SIGINT)
+  app.enableShutdownHooks();
 
   // Trust proxy for secure cookies behind Render/Cloudflare reverse proxy
   const expressApp = app.getHttpAdapter().getInstance();
@@ -31,16 +56,30 @@ async function bootstrap() {
   // Cookie parser
   app.use(cookieParser());
 
-  // Session
+  // Session configuration with durable Postgres store when available
   const isProduction = process.env.NODE_ENV === 'production';
   const cookieSecure =
     process.env.COOKIE_SECURE !== undefined
       ? process.env.COOKIE_SECURE === 'true'
       : isProduction;
 
+  let sessionStore: session.Store | undefined;
+  if (process.env.DATA_PROVIDER !== 'json') {
+    try {
+      const prisma = app.get(PrismaService, { strict: false });
+      if (prisma) {
+        sessionStore = new PrismaSessionStore(prisma);
+        logger.log('📦 Persistent PostgreSQL session store active');
+      }
+    } catch {
+      logger.warn('PrismaService unavailable for session store; using memory fallback');
+    }
+  }
+
   app.use(
     session({
       secret: process.env.SESSION_SECRET || 'bookleaf-dev-secret',
+      store: sessionStore,
       resave: false,
       saveUninitialized: false,
       cookie: {
@@ -52,6 +91,12 @@ async function bootstrap() {
     }),
   );
 
+  // Global exception filter for secure, consistent error envelopes
+  app.useGlobalFilters(new GlobalExceptionFilter());
+
+  // Global logging interceptor for latency and audit visibility
+  app.useGlobalInterceptors(new LoggingInterceptor());
+
   // Global validation
   app.useGlobalPipes(
     new ValidationPipe({
@@ -61,8 +106,8 @@ async function bootstrap() {
     }),
   );
 
-  // Global prefix
-  app.setGlobalPrefix('api/v1');
+  // Global prefix with health check route exclusion
+  app.setGlobalPrefix('api/v1', { exclude: ['health'] });
 
   // Swagger
   const config = new DocumentBuilder()
@@ -83,17 +128,22 @@ async function bootstrap() {
   if (webDistPath) {
     app.use(express.static(webDistPath));
     app.use((req: any, res: any, next: any) => {
-      if (req.method === 'GET' && !req.path.startsWith('/api')) {
+      if (
+        req.method === 'GET' &&
+        !req.path.startsWith('/api') &&
+        req.path !== '/health'
+      ) {
         return res.sendFile(path.join(webDistPath, 'index.html'));
       }
       next();
     });
-    console.log(`🌐 Serving frontend SPA from ${webDistPath}`);
+    logger.log(`🌐 Serving frontend SPA from ${webDistPath}`);
   }
 
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
-  console.log(`🍃 BookLeaf API running on http://localhost:${port}`);
-  console.log(`📖 Swagger docs at http://localhost:${port}/api/docs`);
+  logger.log(`🍃 BookLeaf API running on http://localhost:${port}`);
+  logger.log(`📖 Swagger docs at http://localhost:${port}/api/docs`);
+  logger.log(`🩺 Health check at http://localhost:${port}/health`);
 }
 bootstrap();

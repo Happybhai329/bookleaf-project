@@ -17,6 +17,8 @@ import { AdminTicketsPage } from '@/pages/admin/AdminTicketsPage';
 import { AdminTicketDetailPage } from '@/pages/admin/AdminTicketDetailPage';
 import { AdminAuthorsPage } from '@/pages/admin/AdminAuthorsPage';
 import { AdminBooksPage } from '@/pages/admin/AdminBooksPage';
+import { NotFoundPage } from '@/pages/NotFoundPage';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -72,106 +74,108 @@ function RootRedirect() {
 
 export default function App() {
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/" element={<RootRedirect />} />
+    <ErrorBoundary>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<RootRedirect />} />
 
-      {/* Protected App Layout */}
-      <Route
-        element={
-          <ProtectedRoute>
-            <AppLayout />
-          </ProtectedRoute>
-        }
-      >
-        {/* Author Routes */}
+        {/* Protected App Layout */}
         <Route
-          path="/author/dashboard"
           element={
-            <ProtectedRoute allowedRoles={[UserRole.AUTHOR]}>
-              <AuthorDashboardPage />
+            <ProtectedRoute>
+              <AppLayout />
             </ProtectedRoute>
           }
-        />
-        <Route
-          path="/author/books"
-          element={
-            <ProtectedRoute allowedRoles={[UserRole.AUTHOR]}>
-              <AuthorBooksPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/author/tickets"
-          element={
-            <ProtectedRoute allowedRoles={[UserRole.AUTHOR]}>
-              <AuthorTicketsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/author/tickets/new"
-          element={
-            <ProtectedRoute allowedRoles={[UserRole.AUTHOR]}>
-              <AuthorSubmitTicketPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/author/tickets/:ticketId"
-          element={
-            <ProtectedRoute allowedRoles={[UserRole.AUTHOR]}>
-              <AuthorTicketDetailPage />
-            </ProtectedRoute>
-          }
-        />
+        >
+          {/* Author Routes */}
+          <Route
+            path="/author/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.AUTHOR]}>
+                <AuthorDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/author/books"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.AUTHOR]}>
+                <AuthorBooksPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/author/tickets"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.AUTHOR]}>
+                <AuthorTicketsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/author/tickets/new"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.AUTHOR]}>
+                <AuthorSubmitTicketPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/author/tickets/:ticketId"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.AUTHOR]}>
+                <AuthorTicketDetailPage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Admin Routes */}
-        <Route
-          path="/admin/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-              <AdminDashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/tickets"
-          element={
-            <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-              <AdminTicketsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/tickets/:ticketId"
-          element={
-            <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-              <AdminTicketDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/authors"
-          element={
-            <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-              <AdminAuthorsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/books"
-          element={
-            <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
-              <AdminBooksPage />
-            </ProtectedRoute>
-          }
-        />
-      </Route>
+          {/* Admin Routes */}
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/tickets"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+                <AdminTicketsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/tickets/:ticketId"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+                <AdminTicketDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/authors"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+                <AdminAuthorsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/books"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.ADMIN]}>
+                <AdminBooksPage />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* 404 Fallback */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </ErrorBoundary>
   );
 }

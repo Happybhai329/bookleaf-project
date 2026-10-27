@@ -7,6 +7,7 @@ import { AdminModule } from './admin/admin.module';
 import { DataModule } from './data/data.module';
 import { AiModule } from './ai/ai.module';
 import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module';
     AdminModule,
     AiModule,
     KnowledgeBaseModule,
+    HealthModule,
   ],
   providers: [
     {

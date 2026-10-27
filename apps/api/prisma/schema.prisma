@@ -163,3 +163,14 @@ model AuditLog {
   @@index([ticket_id])
   @@map("audit_logs")
 }
+
+model Session {
+  id        String   @id
+  data      String   @db.Text
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@map("sessions")
+}

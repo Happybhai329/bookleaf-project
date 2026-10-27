@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Optional,
   Logger,
 } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
@@ -37,8 +38,8 @@ export class AuthorService {
     private readonly bookRepo: BookRepository,
     private readonly ticketRepo: TicketRepository,
     private readonly messageRepo: TicketMessageRepository,
-    private readonly auditRepo: AuditRepository,
     private readonly aiService: AiService,
+    @Optional() private readonly auditRepo?: AuditRepository,
   ) {}
 
   async getProfile(authorId: string): Promise<Author> {
@@ -266,13 +267,15 @@ export class AuthorService {
     }
     await this.ticketRepo.update(ticketId, updateData);
 
-    await this.auditRepo.create(
-      ticketId,
-      userId,
-      userName,
-      'AUTHOR_REPLY',
-      { messageId: saved.id },
-    );
+    if (this.auditRepo) {
+      await this.auditRepo.create(
+        ticketId,
+        userId,
+        userName,
+        'AUTHOR_REPLY',
+        { messageId: saved.id },
+      );
+    }
 
     return saved;
   }
@@ -294,13 +297,15 @@ export class AuthorService {
       updated_at: new Date().toISOString(),
     });
 
-    await this.auditRepo.create(
-      ticketId,
-      userId,
-      userName,
-      'AUTHOR_RESOLVED_TICKET',
-      { previousStatus: ticket.status },
-    );
+    if (this.auditRepo) {
+      await this.auditRepo.create(
+        ticketId,
+        userId,
+        userName,
+        'AUTHOR_RESOLVED_TICKET',
+        { previousStatus: ticket.status },
+      );
+    }
 
     return updated || ticket;
   }

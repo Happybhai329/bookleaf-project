@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  Optional,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
@@ -16,7 +17,7 @@ import { RegisterDto } from './dto/register.dto';
 export class AuthService {
   constructor(
     private readonly userRepo: UserRepository,
-    private readonly authorRepo: AuthorRepository,
+    @Optional() private readonly authorRepo?: AuthorRepository,
   ) {}
 
   async validateUser(email: string, password: string): Promise<AuthUser> {
@@ -34,6 +35,10 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto): Promise<AuthUser> {
+    if (!this.authorRepo) {
+      throw new BadRequestException('Author registration repository not available');
+    }
+
     const existing = await this.userRepo.findByEmail(dto.email);
     if (existing) {
       throw new ConflictException('An account with this email already exists');
