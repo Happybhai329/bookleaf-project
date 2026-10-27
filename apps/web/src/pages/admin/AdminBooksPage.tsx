@@ -48,6 +48,22 @@ const PRODUCTION_STAGES = [
   'Published & Live',
 ];
 
+const ALL_CHANNELS = [
+  'Amazon India',
+  'Flipkart',
+  'BookLeaf Bookstore',
+  'Amazon US',
+  'Amazon UK',
+  'IngramSpark',
+];
+
+const PRINT_PARTNERS = [
+  { value: 'Repro Books India', label: 'Repro Books India (National On-Demand POD)' },
+  { value: 'In-house Delhi facility', label: 'In-house Delhi facility (Direct Warehouse & Short Run)' },
+  { value: 'Epitome Books', label: 'Epitome Books (Special Bindings / Hardcovers)' },
+  { value: 'Ingram Content Group', label: 'Ingram Content Group (International Print & Distribution)' },
+];
+
 export function AdminBooksPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'LIVE' | 'PRODUCTION'>('ALL');
@@ -58,6 +74,7 @@ export function AdminBooksPage() {
   const [editMrp, setEditMrp] = useState<number>(0);
   const [editCopiesSold, setEditCopiesSold] = useState<number>(0);
   const [editPrintPartner, setEditPrintPartner] = useState('');
+  const [editAvailableOn, setEditAvailableOn] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   const { data: books, isLoading, error, refetch } = useQuery<MasterBook[]>({
@@ -71,6 +88,15 @@ export function AdminBooksPage() {
     setEditMrp(b.mrp || 399);
     setEditCopiesSold(b.total_copies_sold || 0);
     setEditPrintPartner(b.print_partner || 'Repro Books India');
+    setEditAvailableOn(b.available_on && b.available_on.length > 0 ? [...b.available_on] : ['Amazon India', 'Flipkart', 'BookLeaf Bookstore']);
+  };
+
+  const handleToggleChannel = (channel: string) => {
+    if (editAvailableOn.includes(channel)) {
+      setEditAvailableOn(editAvailableOn.filter((c) => c !== channel));
+    } else {
+      setEditAvailableOn([...editAvailableOn, channel]);
+    }
   };
 
   const handleSaveBook = async (e: React.FormEvent) => {
@@ -86,6 +112,7 @@ export function AdminBooksPage() {
           mrp: Number(editMrp),
           total_copies_sold: Number(editCopiesSold),
           print_partner: editPrintPartner,
+          available_on: editAvailableOn,
         }),
       });
       toast.success(`Updated "${editingBook.title}" successfully!`);
@@ -140,7 +167,7 @@ export function AdminBooksPage() {
             Master Book Catalog ({totalTitles})
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Complete publishing database across all BookLeaf author contracts, production stages, and print runs.
+            Complete publishing database across all BookLeaf author contracts, production stages, distribution channels, and print runs.
           </p>
         </div>
 
@@ -258,7 +285,7 @@ export function AdminBooksPage() {
                       className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-navy-50 hover:text-navy-700 shadow-xs transition-colors"
                     >
                       <Edit3 className="w-3.5 h-3.5 mr-1" />
-                      Manage Stage
+                      Edit Book
                     </button>
                   </td>
                 </tr>
@@ -268,13 +295,13 @@ export function AdminBooksPage() {
         </div>
       </div>
 
-      {/* Edit Stage & Sales Modal */}
+      {/* Edit Book Modal */}
       {editingBook && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden border border-gray-200 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden border border-gray-200 animate-in fade-in zoom-in-95 duration-150">
             <div className="px-6 py-4 bg-navy-950 text-white flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-base">Advance Production Stage</h3>
+                <h3 className="font-bold text-base">Edit Book Details & Stage</h3>
                 <p className="text-xs text-navy-200 mt-0.5 font-mono">{editingBook.title} ({editingBook.book_id})</p>
               </div>
               <button
@@ -286,7 +313,7 @@ export function AdminBooksPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveBook} className="p-6 space-y-4">
+            <form onSubmit={handleSaveBook} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
                   Production Stage / Status
@@ -301,13 +328,67 @@ export function AdminBooksPage() {
                       {stg}
                     </option>
                   ))}
-                  {/* Keep custom status if not in list */}
                   {!PRODUCTION_STAGES.includes(editStatus) && (
                     <option value={editStatus}>{editStatus}</option>
                   )}
                 </select>
                 <span className="text-[11px] text-gray-500 mt-1 block">
-                  Selecting <strong>Published & Live</strong> enables public sales tracking and author royalty payouts.
+                  Setting to <strong>Published & Live</strong> enables public sales tracking and author royalty payouts.
+                </span>
+              </div>
+
+              {/* Print Partner Selection */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  Print Partner Facility
+                </label>
+                <select
+                  value={editPrintPartner}
+                  onChange={(e) => setEditPrintPartner(e.target.value)}
+                  className="input-field text-xs py-2 w-full font-medium"
+                >
+                  {PRINT_PARTNERS.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
+                  {!PRINT_PARTNERS.some((p) => p.value === editPrintPartner) && (
+                    <option value={editPrintPartner}>{editPrintPartner}</option>
+                  )}
+                </select>
+                <span className="text-[11px] text-gray-500 mt-1 block">
+                  BookLeaf operations allocates printing based on book trim size, paper quality, and geographical order fulfillment.
+                </span>
+              </div>
+
+              {/* Distribution Channels Multi-Select Checkboxes */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Distribution Channels (Marketplaces)
+                </label>
+                <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50 border border-gray-200 rounded-lg">
+                  {ALL_CHANNELS.map((channel) => {
+                    const isChecked = editAvailableOn.includes(channel);
+                    return (
+                      <label
+                        key={channel}
+                        className="flex items-center space-x-2 text-xs text-gray-700 cursor-pointer select-none"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggleChannel(channel)}
+                          className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5"
+                        />
+                        <span className={isChecked ? 'font-semibold text-gray-900' : 'text-gray-500'}>
+                          {channel}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <span className="text-[11px] text-gray-500 mt-1 block">
+                  Check each platform where BookLeaf pushes retail catalog feeds and syncs inventory.
                 </span>
               </div>
 
@@ -340,21 +421,6 @@ export function AdminBooksPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
-                  Print Partner
-                </label>
-                <select
-                  value={editPrintPartner}
-                  onChange={(e) => setEditPrintPartner(e.target.value)}
-                  className="input-field text-xs py-2 w-full"
-                >
-                  <option value="Repro Books India">Repro Books India</option>
-                  <option value="In-house Delhi facility">In-house Delhi facility</option>
-                  <option value="Epitome Books">Epitome Books</option>
-                </select>
-              </div>
-
               <div className="pt-3 border-t border-gray-100 flex items-center justify-end space-x-2">
                 <button
                   type="button"
@@ -368,7 +434,7 @@ export function AdminBooksPage() {
                   disabled={saving}
                   className="btn-primary py-1.5 px-4 text-xs font-semibold flex items-center"
                 >
-                  {saving ? 'Updating...' : 'Save & Advance Stage'}
+                  {saving ? 'Updating...' : 'Save Changes'}
                 </button>
               </div>
             </form>

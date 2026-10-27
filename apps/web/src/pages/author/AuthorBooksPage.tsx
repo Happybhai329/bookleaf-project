@@ -29,6 +29,11 @@ export function AuthorBooksPage() {
   const [newGenre, setNewGenre] = useState('Literary Fiction');
   const [newMrp, setNewMrp] = useState('399');
   const [newFormat, setNewFormat] = useState('Paperback');
+  const [selectedChannels, setSelectedChannels] = useState<string[]>([
+    'Amazon India',
+    'Flipkart',
+    'BookLeaf Bookstore',
+  ]);
   const [submittingBook, setSubmittingBook] = useState(false);
 
   const { data: books, isLoading, error, refetch } = useQuery<Book[]>({
@@ -317,7 +322,7 @@ export function AuthorBooksPage() {
                       genre: newGenre,
                       mrp: parseFloat(newMrp) || 299,
                       status: 'Manuscript Submitted',
-                      available_on: ['BookLeaf Bookstore', 'Amazon India'],
+                      available_on: selectedChannels.length > 0 ? selectedChannels : ['BookLeaf Bookstore'],
                     }),
                   });
                   toast.success('Title registered successfully!');
@@ -380,8 +385,41 @@ export function AuthorBooksPage() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Requested Distribution Channels
+                </label>
+                <div className="grid grid-cols-2 gap-2 p-2.5 bg-slate-50 border border-gray-200 rounded-lg">
+                  {['Amazon India', 'Flipkart', 'BookLeaf Bookstore', 'Amazon US / Global'].map((ch) => {
+                    const isChecked = selectedChannels.includes(ch);
+                    return (
+                      <label
+                        key={ch}
+                        className="flex items-center space-x-2 text-xs text-gray-700 cursor-pointer select-none"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedChannels([...selectedChannels, ch]);
+                            } else {
+                              setSelectedChannels(selectedChannels.filter((c) => c !== ch));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5"
+                        />
+                        <span className={isChecked ? 'font-semibold text-gray-900' : 'text-gray-500'}>
+                          {ch}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 text-xs text-emerald-800">
-                💡 <strong>Standard BookLeaf Royalties:</strong> 15% royalty per sold copy (₹{Math.round((parseFloat(newMrp) || 299) * 0.15)} / copy). Titles will be listed across Amazon India, Flipkart, and the BookLeaf store once approved.
+                💡 <strong>Standard BookLeaf Royalties:</strong> 15% royalty per sold copy (₹{Math.round((parseFloat(newMrp) || 299) * 0.15)} / copy). Production staff will assign the optimal print facility based on order volume and destination.
               </div>
 
               <div className="flex items-center justify-end space-x-3 pt-2">
