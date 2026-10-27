@@ -19,7 +19,6 @@ import toast from 'react-hot-toast';
 
 const TEST_PROFILES = [
   { label: 'Operations Admin', email: 'admin@bookleaf.in', role: 'ADMIN', badge: 'Operations' },
-  { label: 'Priya Sharma (Author)', email: 'priya.sharma@email.com', role: 'AUTHOR', badge: 'AUTH001' },
 ];
 
 export function LoginPage() {
