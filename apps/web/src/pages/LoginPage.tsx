@@ -19,6 +19,10 @@ import toast from 'react-hot-toast';
 
 const TEST_PROFILES = [
   { label: 'Operations Admin', email: 'admin@bookleaf.in', role: 'ADMIN', badge: 'Operations' },
+  { label: 'Rohit Kapoor (High Sales)', email: 'rohit.kapoor@email.com', role: 'AUTHOR', badge: 'AUTH002' },
+  { label: 'Priya Sharma (Payout Query)', email: 'priya.sharma@email.com', role: 'AUTHOR', badge: 'AUTH001' },
+  { label: 'Kavita Deshmukh (Production)', email: 'kavita.deshmukh@email.com', role: 'AUTHOR', badge: 'AUTH009' },
+  { label: 'Happy Bhasin (Author)', email: 'bhasinhappy0506@gmail.com', role: 'AUTHOR', badge: 'AUTH011' },
 ];
 
 export function LoginPage() {
