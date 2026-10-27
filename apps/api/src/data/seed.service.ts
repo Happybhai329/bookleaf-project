@@ -40,9 +40,9 @@ export class SeedService {
     }
 
     if (isPostgres) {
-      const authorCount = await this.authorRepo.count();
-      if (authorCount > 0) {
-        this.logger.log(`PostgreSQL database already has ${authorCount} authors — skipping seed`);
+      const userCount = await this.userRepo.count();
+      if (userCount > 0) {
+        this.logger.log(`PostgreSQL database already has ${userCount} users — skipping seed`);
         return;
       }
     }

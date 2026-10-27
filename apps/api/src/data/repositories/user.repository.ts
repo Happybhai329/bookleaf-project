@@ -125,6 +125,13 @@ export class UserRepository {
     await this.store.persist();
   }
 
+  async count(): Promise<number> {
+    if (this.usePostgres && this.prisma) {
+      return this.prisma.user.count();
+    }
+    return this.store.getData().users.length;
+  }
+
   async exists(email: string): Promise<boolean> {
     if (this.usePostgres && this.prisma) {
       const count = await this.prisma.user.count({
