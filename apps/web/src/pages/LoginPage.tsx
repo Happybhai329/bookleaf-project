@@ -8,22 +8,9 @@ import {
   Eye,
   EyeOff,
   Shield,
-  UserCheck,
-  CheckCircle2,
   Sparkles,
-  BookOpen,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-const TEST_PROFILES = [
-  { label: 'Operations Admin', email: 'admin@bookleaf.in', role: 'ADMIN', badge: 'Operations' },
-  { label: 'Rohit Kapoor (High Sales)', email: 'rohit.kapoor@email.com', role: 'AUTHOR', badge: 'AUTH002' },
-  { label: 'Priya Sharma (Payout Query)', email: 'priya.sharma@email.com', role: 'AUTHOR', badge: 'AUTH001' },
-  { label: 'Kavita Deshmukh (Production)', email: 'kavita.deshmukh@email.com', role: 'AUTHOR', badge: 'AUTH009' },
-  { label: 'Happy Bhasin (Author)', email: 'bhasinhappy0506@gmail.com', role: 'AUTHOR', badge: 'AUTH011' },
-];
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -41,9 +28,6 @@ export function LoginPage() {
   const [regPassword, setRegPassword] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regCity, setRegCity] = useState('');
-
-  // Floating helper state
-  const [showHelper, setShowHelper] = useState(false);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,12 +98,6 @@ export function LoginPage() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleFillProfile = (profileEmail: string) => {
-    setEmail(profileEmail);
-    setPassword('BookLeaf2024!');
-    setMode('signin');
   };
 
   return (
@@ -234,6 +212,33 @@ export function LoginPage() {
                   >
                     {submitting ? 'Authenticating...' : 'Sign In to Workspace'}
                   </button>
+
+                  {/* Clean, Professional Demo Access Banner */}
+                  <div className="mt-4 pt-3.5 border-t border-gray-100">
+                    <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 flex items-center justify-between text-xs">
+                      <div className="flex items-center space-x-1.5 text-slate-600 truncate">
+                        <Shield className="w-3.5 h-3.5 text-navy-800 shrink-0" />
+                        <span className="font-semibold text-slate-700">Admin Demo:</span>
+                        <code className="bg-white px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[11px] text-gray-800">
+                          admin@bookleaf.in
+                        </code>
+                        <span className="text-gray-300">/</span>
+                        <code className="bg-white px-1.5 py-0.5 rounded border border-gray-200 font-mono text-[11px] text-gray-800">
+                          BookLeaf2024!
+                        </code>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEmail('admin@bookleaf.in');
+                          setPassword('BookLeaf2024!');
+                        }}
+                        className="text-[11px] font-semibold text-navy-800 hover:text-navy-950 underline shrink-0 ml-2"
+                      >
+                        Auto-fill
+                      </button>
+                    </div>
+                  </div>
                 </form>
               ) : (
                 /* REGISTRATION FORM */
@@ -318,47 +323,6 @@ export function LoginPage() {
               )}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Floating Discrete Quick Access for Evaluators */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden max-w-xs transition-all">
-          <button
-            type="button"
-            onClick={() => setShowHelper(!showHelper)}
-            className="w-full px-3 py-2 bg-navy-900 text-white text-xs font-semibold flex items-center justify-between space-x-2 hover:bg-navy-800 transition-colors"
-          >
-            <span className="flex items-center">
-              <Shield className="w-3.5 h-3.5 mr-1.5 text-amber-400" />
-              Quick Fill Profiles
-            </span>
-            {showHelper ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
-          </button>
-
-          {showHelper && (
-            <div className="p-3 bg-white space-y-1.5 border-t border-gray-100 max-h-64 overflow-y-auto">
-              <p className="text-[11px] text-gray-500 mb-1">
-                Click any profile to populate credentials:
-              </p>
-              {TEST_PROFILES.map((p) => (
-                <button
-                  key={p.email}
-                  type="button"
-                  onClick={() => handleFillProfile(p.email)}
-                  className="w-full text-left p-1.5 rounded-lg hover:bg-slate-50 border border-gray-100 flex items-center justify-between text-xs transition-colors"
-                >
-                  <div className="truncate pr-2">
-                    <span className="font-semibold text-gray-900 block truncate">{p.label}</span>
-                    <span className="text-[10px] text-gray-400 font-mono">{p.email}</span>
-                  </div>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 shrink-0">
-                    {p.badge}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
